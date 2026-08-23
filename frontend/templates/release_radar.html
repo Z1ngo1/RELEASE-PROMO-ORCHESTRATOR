@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Release Radar</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0C0F; --panel:#12161B; --panel-2:#171D23; --line: rgba(255,255,255,0.08);
+    --text:#E7ECEF; --muted:#7C8894; --accent:#F5A623; --amber:#F5A623; --green:#3ECF8E; --coral:#FF6152;
+    --radius:5px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'IBM Plex Sans',sans-serif;}
+  body{padding:32px 20px 60px;}
+  .wrap{max-width:1180px;margin:0 auto;}
+  header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:10px;}
+  .brand{display:flex;align-items:center;gap:10px;}
+  h1{font-family:'IBM Plex Sans Condensed',sans-serif;font-weight:700;font-size:19px;letter-spacing:.04em;text-transform:uppercase;margin:0;}
+  .sub{color:var(--muted);font-size:12.5px;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;gap:10px;}
+  .refresh-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);}
+  .refresh-dot.live{background:var(--green);}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:20px;margin-bottom:16px;position:relative;}
+  .error{border-color:var(--coral);color:var(--coral);font-family:'IBM Plex Mono',monospace;font-size:12.5px;}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:20px 0;}
+  .section-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:12px;font-family:'IBM Plex Mono',monospace;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+  .section-label .hint{text-transform:none;letter-spacing:0;color:var(--muted);font-weight:400;}
+  .section-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+
+  /* metrics */
+  .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px;}
+  .metric{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px;position:relative;overflow:hidden;}
+  .metric::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--accent);opacity:.5;}
+  .metric .label{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-family:'IBM Plex Mono',monospace;margin-bottom:6px;}
+  .metric .value{font-family:'IBM Plex Sans Condensed',sans-serif;font-size:24px;font-weight:600;}
+  .metric .value.amber{color:var(--amber);}
+  .metric .value.coral{color:var(--coral);}
+  .metric .value.green{color:var(--green);}
+
+  /* timeline */
+  .timeline-scroll{overflow-x:auto;padding-bottom:4px;}
+  .timeline-row{display:flex;align-items:center;gap:12px;padding:6px 0;}
+  .timeline-label{flex:0 0 200px;position:sticky;left:0;background:var(--panel);z-index:2;padding-right:8px;
+    font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;display:flex;align-items:center;gap:6px;}
+  .timeline-label:hover{color:var(--accent);}
+  .risk-badge{font-size:9.5px;font-family:'IBM Plex Mono',monospace;padding:1px 6px;border-radius:8px;border:1px solid;white-space:nowrap;flex-shrink:0;}
+  .risk-badge.High{color:var(--coral);border-color:var(--coral);}
+  .risk-badge.Medium{color:var(--amber);border-color:var(--amber);}
+  .risk-badge.Low{color:var(--green);border-color:var(--green);}
+  .timeline-track{position:relative;height:22px;background:rgba(255,255,255,0.03);border-radius:6px;flex:0 0 auto;}
+  .timeline-bar{position:absolute;top:2px;bottom:2px;border-radius:5px;display:flex;align-items:center;padding:0 8px;font-size:10.5px;font-family:'IBM Plex Mono',monospace;color:#0B0F1A;font-weight:600;white-space:nowrap;overflow:hidden;cursor:pointer;}
+  .timeline-bar.DRAFT{background:var(--amber);}
+  .timeline-bar.CONFIRMED,.timeline-bar.LIVE,.timeline-bar.RELEASED{background:var(--green);}
+  .timeline-bar.CANCELLED{background:var(--coral);}
+  .timeline-axis{display:flex;gap:12px;margin-bottom:4px;}
+  .timeline-axis-label{flex:0 0 200px;position:sticky;left:0;background:var(--panel);z-index:2;}
+  .timeline-axis-track{position:relative;height:14px;font-size:10px;color:var(--muted);font-family:'IBM Plex Mono',monospace;flex:0 0 auto;}
+  .timeline-axis-track span{position:absolute;transform:translateX(-50%);}
+
+  /* controls */
+  .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;}
+  .search-input{
+    background:rgba(255,255,255,0.03);border:1px solid var(--line);border-radius:8px;
+    padding:6px 10px;color:var(--text);font-size:12.5px;font-family:'IBM Plex Sans',sans-serif;
+    outline:none;min-width:200px;
+  }
+  .search-input:focus{border-color:var(--accent);}
+  .btn{
+    background:rgba(245,166,35,0.12);color:var(--accent);border:1px solid var(--accent);
+    border-radius:8px;padding:6px 14px;font-size:12px;font-family:'IBM Plex Mono',monospace;
+    cursor:pointer;
+  }
+  .btn:hover{background:rgba(245,166,35,0.22);}
+  .btn.ghost{background:transparent;color:var(--muted);border-color:var(--line);}
+  .btn.ghost:hover{color:var(--text);border-color:var(--muted);}
+  .btn.small{padding:4px 10px;font-size:11px;}
+
+  .tier-group{display:flex;gap:4px;background:rgba(255,255,255,0.03);border:1px solid var(--line);border-radius:8px;padding:3px;}
+  .tier-btn{
+    background:transparent;border:none;color:var(--muted);font-size:11.5px;font-family:'IBM Plex Mono',monospace;
+    padding:4px 10px;border-radius:6px;cursor:pointer;
+  }
+  .tier-btn.active{background:rgba(245,166,35,0.18);color:var(--accent);}
+  .tier-btn:hover:not(.active){color:var(--text);}
+
+  .filter-chip{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;
+    background:rgba(245,166,35,0.12);color:var(--accent);border:1px solid var(--accent);
+    border-radius:8px;padding:3px 10px;cursor:pointer;
+  }
+  .filter-chip:hover{background:rgba(245,166,35,0.22);}
+
+  /* add-forms */
+  .add-form{display:none;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px;padding-top:14px;border-top:1px dashed var(--line);}
+  .add-form.open{display:grid;}
+  .add-form label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--muted);font-family:'IBM Plex Mono',monospace;}
+  .add-form input, .add-form select{
+    background:rgba(255,255,255,0.03);border:1px solid var(--line);border-radius:6px;
+    padding:6px 8px;color:var(--text);font-size:13px;font-family:'IBM Plex Sans',sans-serif;outline:none;
+  }
+  .add-form input:focus, .add-form select:focus{border-color:var(--accent);}
+  .add-form .submit-row{grid-column:1/-1;display:flex;gap:8px;align-items:center;}
+  .form-status{font-size:11.5px;font-family:'IBM Plex Mono',monospace;color:var(--muted);}
+  .form-status.ok{color:var(--green);}
+  .form-status.err{color:var(--coral);}
+
+  /* tables */
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;color:var(--muted);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;font-family:'IBM Plex Mono',monospace;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  th.sortable{cursor:pointer;user-select:none;}
+  th.sortable:hover{color:var(--text);}
+  th.sortable .arrow{opacity:0.4;margin-left:3px;}
+  th.sortable.active .arrow{opacity:1;color:var(--accent);}
+  td{padding:10px 10px;border-bottom:1px solid var(--line);}
+  tr.data-row:hover td{background:rgba(255,255,255,0.03);}
+  tr.release-row{cursor:pointer;}
+  tr.release-row.selected td{background:rgba(245,166,35,0.10);}
+  tr.release-row.selected td:first-child{box-shadow:inset 3px 0 0 var(--accent);}
+
+  .status{font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid var(--line);color:var(--muted);white-space:nowrap;}
+  .status.DRAFT{color:var(--amber);border-color:var(--amber);}
+  .status.CONFIRMED,.status.LIVE,.status.DONE,.status.RELEASED{color:var(--green);border-color:var(--green);}
+  .status.PENDING{color:var(--muted);}
+  .status.IN-PROG{color:var(--accent);border-color:var(--accent);}
+  .status.CANCELLED{color:var(--coral);border-color:var(--coral);}
+  .sev{font-size:11px;padding:2px 8px;border-radius:10px;border:1px solid var(--line);white-space:nowrap;}
+  .sev.LOW{color:var(--green);border-color:var(--green);}
+  .sev.MEDIUM{color:var(--amber);border-color:var(--amber);}
+  .sev.HIGH{color:var(--coral);border-color:var(--coral);}
+  .risk{font-family:'IBM Plex Mono',monospace;}
+  .factors{color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11.5px;}
+
+  .status-select{
+    background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:8px;
+    color:inherit;font-size:11px;font-family:'IBM Plex Mono',monospace;padding:2px 6px;cursor:pointer;outline:none;
+  }
+  .status-select:hover{border-color:var(--accent);}
+  .status-select.DRAFT{color:var(--amber);}
+  .status-select.CONFIRMED, .status-select.LIVE, .status-select.DONE, .status-select.RELEASED{color:var(--green);}
+  .status-select.PENDING{color:var(--muted);}
+  .status-select.IN-PROG{color:var(--accent);}
+  .status-select.CANCELLED{color:var(--coral);}
+  .saving-hint{font-size:10px;color:var(--muted);margin-left:6px;font-family:'IBM Plex Mono',monospace;}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="brand">
+      <h1>Release Radar</h1>
+    </div>
+    <div class="sub">
+      <span class="refresh-dot" id="refreshDot"></span>
+      <span id="refreshLabel">updated just now</span>
+    </div>
+  </header>
+
+  <div id="errorBanner"></div>
+
+  <div class="metrics" id="metrics"></div>
+
+  <div class="panel">
+    <div class="section-label">Timeline <span class="hint">risk badge shows this release's average clash score</span></div>
+    <div id="timeline"></div>
+  </div>
+
+  <div class="panel">
+    <div class="section-label">
+      <span>Releases <span class="hint">click a row to filter promo &amp; clash data below</span></span>
+      <div class="section-actions">
+        <button class="btn small ghost" id="exportReleases">Export CSV</button>
+        <button class="btn" id="toggleAddRelease">+ Add release</button>
+      </div>
+    </div>
+    <div class="controls">
+      <input type="text" class="search-input" id="releaseSearch" placeholder="Search title, genre, platform, market...">
+      <div class="tier-group" id="tierGroup">
+        <button class="tier-btn active" data-tier="All">All</button>
+        <button class="tier-btn" data-tier="High">High</button>
+        <button class="tier-btn" data-tier="Medium">Medium</button>
+        <button class="tier-btn" data-tier="Low">Low</button>
+      </div>
+    </div>
+    <div id="releasesTableWrap"></div>
+
+    <form class="add-form" id="addReleaseForm">
+      <label>Title <input type="text" name="title" required></label>
+      <label>Genre
+        <select name="genre">
+          <option>DRAMA</option><option>COMEDY</option><option>SPORT</option>
+          <option>DOCUMENTARY</option><option>THRILLER</option><option>OTHER</option>
+        </select>
+      </label>
+      <label>Platform
+        <select name="platform">
+          <option>STREAMING</option><option>LINEAR</option><option>THEATRICAL</option>
+        </select>
+      </label>
+      <label>Release date <input type="date" name="releaseDate"></label>
+      <label>Window end <input type="date" name="windowEnd"></label>
+      <label>Market
+        <select name="market">
+          <option>US</option><option>EU</option><option>APAC</option><option>LATAM</option><option>GLOBAL</option>
+        </select>
+      </label>
+      <div class="submit-row">
+        <button type="submit" class="btn">Save release</button>
+        <span class="form-status" id="addReleaseStatus"></span>
+      </div>
+    </form>
+
+    <form class="add-form" id="editReleaseForm">
+      <input type="hidden" name="id">
+      <label>Title <input type="text" name="title" required></label>
+      <label>Genre
+        <select name="genre">
+          <option>DRAMA</option><option>COMEDY</option><option>SPORT</option>
+          <option>DOCUMENTARY</option><option>THRILLER</option><option>OTHER</option>
+        </select>
+      </label>
+      <label>Platform
+        <select name="platform">
+          <option>STREAMING</option><option>LINEAR</option><option>THEATRICAL</option>
+        </select>
+      </label>
+      <label>Release date <input type="date" name="releaseDate"></label>
+      <label>Window end <input type="date" name="windowEnd"></label>
+      <label>Market
+        <select name="market">
+          <option>US</option><option>EU</option><option>APAC</option><option>LATAM</option><option>GLOBAL</option>
+        </select>
+      </label>
+      <label>Status
+        <select name="status">
+          <option>DRAFT</option><option>CONFIRMED</option><option>RELEASED</option><option>CANCELLED</option>
+        </select>
+      </label>
+      <div class="submit-row">
+        <button type="submit" class="btn">Save changes</button>
+        <button type="button" class="btn ghost" id="cancelEditRelease">Cancel</button>
+        <span class="form-status" id="editReleaseStatus"></span>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="section-label">
+      <span>Promo Checklist</span>
+      <div class="section-actions">
+        <span id="promoFilterChip" class="filter-chip" style="display:none;"></span>
+        <button class="btn small ghost" id="exportPromo">Export CSV</button>
+        <button class="btn" id="toggleAddPromo">+ Add promo item</button>
+      </div>
+    </div>
+    <div id="promoTableWrap"></div>
+
+    <form class="add-form" id="addPromoForm">
+      <label>Release ID <input type="text" name="relId" placeholder="REL1" required></label>
+      <label>Item name <input type="text" name="itemName" required></label>
+      <label>Status
+        <select name="status">
+          <option>PENDING</option><option>IN-PROG</option><option>DONE</option>
+        </select>
+      </label>
+      <label>Due date <input type="date" name="dueDate"></label>
+      <label>Owner <input type="text" name="owner"></label>
+      <div class="submit-row">
+        <button type="submit" class="btn">Save promo item</button>
+        <span class="form-status" id="addPromoStatus"></span>
+      </div>
+    </form>
+
+    <form class="add-form" id="editPromoForm">
+      <input type="hidden" name="id">
+      <label>Item name <input type="text" name="itemName" required></label>
+      <label>Status
+        <select name="status">
+          <option>PENDING</option><option>IN-PROG</option><option>DONE</option>
+        </select>
+      </label>
+      <label>Due date <input type="date" name="dueDate"></label>
+      <label>Owner <input type="text" name="owner"></label>
+      <div class="submit-row">
+        <button type="submit" class="btn">Save changes</button>
+        <button type="button" class="btn ghost" id="cancelEditPromo">Cancel</button>
+        <span class="form-status" id="editPromoStatus"></span>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="section-label">
+      <span>External Events <span class="hint">not tied to a specific release</span></span>
+      <div class="section-actions">
+        <button class="btn small ghost" id="exportEvents">Export CSV</button>
+        <button class="btn" id="toggleAddEvent">+ Add event</button>
+      </div>
+    </div>
+    <div id="eventsTableWrap"></div>
+
+    <form class="add-form" id="addEventForm">
+      <label>Name <input type="text" name="evtName" required></label>
+      <label>Date <input type="date" name="evtDate"></label>
+      <label>End <input type="date" name="evtEnd"></label>
+      <label>Genre
+        <select name="genre">
+          <option>DRAMA</option><option>COMEDY</option><option>SPORT</option>
+          <option>DOCUMENTARY</option><option>THRILLER</option><option>OTHER</option><option>GLOBAL</option>
+        </select>
+      </label>
+      <label>Market
+        <select name="market">
+          <option>US</option><option>EU</option><option>APAC</option><option>LATAM</option><option>GLOBAL</option>
+        </select>
+      </label>
+      <label>Severity
+        <select name="severity">
+          <option>LOW</option><option>MEDIUM</option><option>HIGH</option>
+        </select>
+      </label>
+      <div class="submit-row">
+        <button type="submit" class="btn">Save event</button>
+        <span class="form-status" id="addEventStatus"></span>
+      </div>
+    </form>
+
+    <form class="add-form" id="editEventForm">
+      <input type="hidden" name="id">
+      <label>Name <input type="text" name="evtName" required></label>
+      <label>Date <input type="date" name="evtDate"></label>
+      <label>End <input type="date" name="evtEnd"></label>
+      <label>Genre
+        <select name="genre">
+          <option>DRAMA</option><option>COMEDY</option><option>SPORT</option>
+          <option>DOCUMENTARY</option><option>THRILLER</option><option>OTHER</option><option>GLOBAL</option>
+        </select>
+      </label>
+      <label>Market
+        <select name="market">
+          <option>US</option><option>EU</option><option>APAC</option><option>LATAM</option><option>GLOBAL</option>
+        </select>
+      </label>
+      <label>Severity
+        <select name="severity">
+          <option>LOW</option><option>MEDIUM</option><option>HIGH</option>
+        </select>
+      </label>
+      <div class="submit-row">
+        <button type="submit" class="btn">Save changes</button>
+        <button type="button" class="btn ghost" id="cancelEditEvent">Cancel</button>
+        <span class="form-status" id="editEventStatus"></span>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel">
+    <div class="section-label">
+      <span>Clash Risk</span>
+      <div class="section-actions">
+        <span id="clashFilterChip" class="filter-chip" style="display:none;"></span>
+        <button class="btn small ghost" id="exportClash">Export CSV</button>
+      </div>
+    </div>
+    <div id="clashTableWrap"></div>
+  </div>
+
+</div>
+
+<script>
+var STATE = {
+  releases: {{ releases | tojson }},
+  error: {{ error | tojson }},
+  promos: {{ promos | tojson }},
+  promo_error: {{ promo_error | tojson }},
+  events: {{ events | tojson }},
+  evt_error: {{ evt_error | tojson }},
+  clashes: {{ clashes | tojson }},
+  clash_error: {{ clash_error | tojson }}
+};
+
+var selectedReleaseId = null;
+var releaseSort = { col: 'releaseDate', dir: 1 };
+var releaseSearchTerm = '';
+var priorityTier = 'All';
+
+function esc(s) {
+  return (s === null || s === undefined) ? '' : String(s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+function parseDate(s) {
+  if (!s) return null;
+  var d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+// ---------------- risk / priority tier helpers ----------------
+// Average clash risk per releaseId, computed once per render from STATE.clashes.
+function computeRiskByRelease() {
+  var map = {};
+  (STATE.clashes || []).forEach(function (c) {
+    if (!c.releaseId) return;
+    if (!map[c.releaseId]) map[c.releaseId] = [];
+    map[c.releaseId].push(parseFloat(c.riskScore) || 0);
+  });
+  var avg = {};
+  Object.keys(map).forEach(function (id) {
+    var arr = map[id];
+    avg[id] = arr.reduce(function (a, b) { return a + b; }, 0) / arr.length;
+  });
+  return avg;
+}
+
+function tierForRisk(risk) {
+  if (risk === undefined || risk === null) return null;
+  if (risk >= 60) return 'High';
+  if (risk >= 30) return 'Medium';
+  return 'Low';
+}
+
+// ---------------- metrics ----------------
+function renderMetrics() {
+  var releases = STATE.releases || [];
+  var promos = STATE.promos || [];
+  var clashes = STATE.clashes || [];
+
+  var total = releases.length;
+  var draftCount = releases.filter(function (r) { return r.status === 'DRAFT'; }).length;
+  var pendingPromo = promos.filter(function (p) { return p.status !== 'DONE'; }).length;
+  var avgRisk = 'n/a';
+  if (clashes.length) {
+    var sum = clashes.reduce(function (acc, c) { return acc + (parseFloat(c.riskScore) || 0); }, 0);
+    avgRisk = (sum / clashes.length).toFixed(1) + '%';
+  }
+  var maxRiskClash = clashes.reduce(function (max, c) {
+    var v = parseFloat(c.riskScore) || 0;
+    return v > (max ? parseFloat(max.riskScore) : -1) ? c : max;
+  }, null);
+
+  var html = '';
+  html += metricCard('Total releases', total, '');
+  html += metricCard('Draft releases', draftCount, draftCount ? 'amber' : 'green');
+  html += metricCard('Pending promo items', pendingPromo, pendingPromo ? 'amber' : 'green');
+  html += metricCard('Avg clash risk', avgRisk, (parseFloat(avgRisk) > 50) ? 'coral' : '');
+  if (maxRiskClash) {
+    html += metricCard('Highest risk pair', esc(maxRiskClash.releaseId) + ' vs ' + esc(maxRiskClash.clashWithId), 'coral');
+  }
+  document.getElementById('metrics').innerHTML = html;
+}
+
+function metricCard(label, value, cls) {
+  return '<div class="metric"><div class="label">' + esc(label) + '</div>' +
+    '<div class="value ' + (cls || '') + '">' + esc(value) + '</div></div>';
+}
+
+// ---------------- timeline ----------------
+function renderTimeline() {
+  var riskByRelease = computeRiskByRelease();
+  var releases = (STATE.releases || []).filter(function (r) { return parseDate(r.releaseDate) && parseDate(r.windowEnd); });
+  var el = document.getElementById('timeline');
+  if (!releases.length) {
+    el.innerHTML = '<div class="empty">No releases with valid dates yet.</div>';
+    return;
+  }
+
+  var msPerDay = 1000 * 60 * 60 * 24;
+  var starts = releases.map(function (r) { return parseDate(r.releaseDate).getTime(); });
+  var ends = releases.map(function (r) { return parseDate(r.windowEnd).getTime(); });
+  var domainStart = Math.min.apply(null, starts);
+  var domainEnd = Math.max.apply(null, ends);
+  var padDays = 3;
+  domainStart -= padDays * msPerDay;
+  domainEnd += padDays * msPerDay;
+  var totalDays = Math.max(1, Math.round((domainEnd - domainStart) / msPerDay));
+
+  // Fixed px-per-day scale: short ranges fall back to a minimum width so
+  // they still fill the panel nicely; wide ranges (e.g. releases a year
+  // apart) grow past the panel width and scroll horizontally instead of
+  // compressing into unreadable slivers.
+  var pxPerDay = 6;
+  var minTrackWidth = 760;
+  var trackWidth = Math.max(minTrackWidth, totalDays * pxPerDay);
+
+  function px(t) { return ((t - domainStart) / msPerDay) * (trackWidth / totalDays); }
+
+  // Pick a tick interval that gives roughly 6-10 readable ticks across
+  // the full track width, snapped to whole days.
+  var targetTicks = 8;
+  var tickDays = Math.max(1, Math.round(totalDays / targetTicks));
+  var axisTicks = [];
+  for (var d = 0; d <= totalDays; d += tickDays) {
+    var t = domainStart + d * msPerDay;
+    var dt = new Date(t);
+    axisTicks.push({ left: px(t), label: (dt.getMonth() + 1) + '/' + dt.getDate() + '/' + String(dt.getFullYear()).slice(2) });
+  }
+
+  var html = '<div class="timeline-scroll"><div class="timeline-axis"><div class="timeline-axis-label"></div>' +
+    '<div class="timeline-axis-track" style="width:' + trackWidth + 'px">' +
+    axisTicks.map(function (t) { return '<span style="left:' + t.left + 'px">' + t.label + '</span>'; }).join('') +
+    '</div></div>';
+
+  releases
+    .slice()
+    .sort(function (a, b) { return parseDate(a.releaseDate) - parseDate(b.releaseDate); })
+    .forEach(function (r) {
+      var s = parseDate(r.releaseDate).getTime();
+      var e = parseDate(r.windowEnd).getTime();
+      var left = px(s);
+      var width = Math.max(px(e) - left, 10);
+      var risk = riskByRelease[r.id];
+      var tier = tierForRisk(risk);
+      var badge = tier ? '<span class="risk-badge ' + tier + '">' + risk.toFixed(0) + '%</span>' : '';
+      html += '<div class="timeline-row">' +
+        '<div class="timeline-label" data-release-id="' + esc(r.id) + '"><span>' + esc(r.title) + '</span>' + badge + '</div>' +
+        '<div class="timeline-track" style="width:' + trackWidth + 'px"><div class="timeline-bar ' + esc(r.status) + '" style="left:' + left + 'px;width:' + width + 'px" data-release-id="' + esc(r.id) + '">' + esc(r.id) + '</div></div>' +
+        '</div>';
+    });
+
+  html += '</div>';
+  el.innerHTML = html;
+
+  el.querySelectorAll('[data-release-id]').forEach(function (node) {
+    node.addEventListener('click', function () { toggleSelection(node.getAttribute('data-release-id')); });
+  });
+}
+
+// ---------------- releases table ----------------
+var RELEASE_COLS = [
+  { key: 'id', label: 'ID' },
+  { key: 'title', label: 'Title' },
+  { key: 'genre', label: 'Genre' },
+  { key: 'platform', label: 'Platform' },
+  { key: 'releaseDate', label: 'Release date' },
+  { key: 'windowEnd', label: 'Window end' },
+  { key: 'market', label: 'Market' },
+  { key: 'status', label: 'Status' }
+];
+// These must match the DB2 CHECK constraints exactly (see CREATTAB.sql) -
+// picking from these lists means an ADD/UPD can never fail on an invalid value.
+var STATUS_OPTIONS = ['DRAFT', 'CONFIRMED', 'RELEASED', 'CANCELLED'];
+var PROMO_STATUS_OPTIONS = ['PENDING', 'IN-PROG', 'DONE'];
+
+function getVisibleReleases() {
+  var riskByRelease = computeRiskByRelease();
+  var releases = (STATE.releases || []).slice();
+
+  if (releaseSearchTerm) {
+    var term = releaseSearchTerm.toLowerCase();
+    releases = releases.filter(function (r) {
+      return [r.title, r.genre, r.platform, r.market].join(' ').toLowerCase().indexOf(term) !== -1;
+    });
+  }
+
+  if (priorityTier !== 'All') {
+    releases = releases.filter(function (r) { return tierForRisk(riskByRelease[r.id]) === priorityTier; });
+  }
+
+  releases.sort(function (a, b) {
+    var av = (a[releaseSort.col] || '').toString();
+    var bv = (b[releaseSort.col] || '').toString();
+    return av.localeCompare(bv) * releaseSort.dir;
+  });
+
+  return releases;
+}
+
+function renderReleases() {
+  var wrap = document.getElementById('releasesTableWrap');
+
+  if (!STATE.releases || !STATE.releases.length) {
+    wrap.innerHTML = STATE.error
+      ? '<div class="panel error">Could not reach relsmgrService: ' + esc(STATE.error) + '</div>'
+      : '<div class="empty">No releases yet - LST returned nothing.</div>';
+    return;
+  }
+
+  var releases = getVisibleReleases();
+
+  var thead = '<tr>' + RELEASE_COLS.map(function (c) {
+    var active = c.key === releaseSort.col;
+    var arrow = active ? (releaseSort.dir === 1 ? '&uarr;' : '&darr;') : '&uarr;';
+    return '<th class="sortable' + (active ? ' active' : '') + '" data-col="' + c.key + '">' + c.label + ' <span class="arrow">' + arrow + '</span></th>';
+  }).join('') + '<th>Actions</th></tr>';
+
+  var rows = releases.map(function (r) {
+    var sel = r.id === selectedReleaseId ? ' selected' : '';
+    var options = STATUS_OPTIONS.map(function (s) {
+      return '<option' + (s === r.status ? ' selected' : '') + '>' + s + '</option>';
+    }).join('');
+    return '<tr class="release-row data-row' + sel + '" data-release-id="' + esc(r.id) + '">' +
+      '<td>' + esc(r.id) + '</td>' +
+      '<td>' + esc(r.title) + '</td>' +
+      '<td>' + esc(r.genre) + '</td>' +
+      '<td>' + esc(r.platform) + '</td>' +
+      '<td>' + esc(r.releaseDate) + '</td>' +
+      '<td>' + esc(r.windowEnd) + '</td>' +
+      '<td>' + esc(r.market) + '</td>' +
+      '<td>' +
+        '<select class="status-select ' + esc(r.status) + '" data-release-id="' + esc(r.id) + '">' + options + '</select>' +
+        '<span class="saving-hint" id="save-hint-rel-' + esc(r.id) + '"></span>' +
+      '</td>' +
+      '<td><button type="button" class="btn small ghost edit-release-btn" data-release-id="' + esc(r.id) + '">Edit</button> <button type="button" class="btn small ghost del-release-btn" data-release-id="' + esc(r.id) + '">Delete</button></td>' +
+      '</tr>';
+  }).join('');
+
+  wrap.innerHTML = releases.length
+    ? '<table><thead>' + thead + '</thead><tbody>' + rows + '</tbody></table>'
+    : '<div class="empty">No releases match your filters.</div>';
+
+  wrap.querySelectorAll('th.sortable').forEach(function (th) {
+    th.addEventListener('click', function () {
+      var col = th.getAttribute('data-col');
+      if (releaseSort.col === col) { releaseSort.dir *= -1; } else { releaseSort = { col: col, dir: 1 }; }
+      renderReleases();
+    });
+  });
+  wrap.querySelectorAll('.release-row').forEach(function (row) {
+    row.addEventListener('click', function (e) {
+      if (e.target.tagName === 'SELECT') return;
+      toggleSelection(row.getAttribute('data-release-id'));
+    });
+  });
+  wrap.querySelectorAll('.status-select').forEach(function (sel) {
+    sel.addEventListener('click', function (e) { e.stopPropagation(); });
+    sel.addEventListener('change', function () { updateReleaseStatus(sel.getAttribute('data-release-id'), sel.value); });
+  });
+  wrap.querySelectorAll('.edit-release-btn').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      openEditRelease(btn.getAttribute('data-release-id'));
+    });
+  });
+  wrap.querySelectorAll('.del-release-btn').forEach(function (btn) {
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      deleteRelease(btn.getAttribute('data-release-id'));
+    });
+  });
+}
+
+function toggleSelection(id) {
+  selectedReleaseId = (selectedReleaseId === id) ? null : id;
+  renderReleases();
+  renderTimelineSelection();
+  renderPromo();
+  renderClash();
+}
+
+function renderTimelineSelection() {
+  document.querySelectorAll('.timeline-bar').forEach(function (bar) {
+    bar.style.outline = (bar.getAttribute('data-release-id') === selectedReleaseId) ? '2px solid #fff' : 'none';
+  });
+}
+
+// Sends the FULL current record back with just the status changed - the backend
+// programs overwrite every field on UPD, so partial payloads would blank the rest.
+function updateReleaseStatus(id, newStatus) {
+  var r = (STATE.releases || []).find(function (x) { return x.id === id; });
+  if (!r) return;
+  var hint = document.getElementById('save-hint-rel-' + id);
+  if (hint) hint.textContent = 'saving...';
+  fetch('/api/release/' + encodeURIComponent(id), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      title: r.title, genre: r.genre, platform: r.platform,
+      releaseDate: r.releaseDate, windowEnd: r.windowEnd, market: r.market,
+      status: newStatus
+    })
+  })
+    .then(function (resp) { return resp.json(); })
+    .then(function (data) {
+      if (data.error) { if (hint) hint.textContent = 'error'; return; }
+      if (hint) hint.textContent = 'saved';
+      refreshData();
+    })
+    .catch(function () { if (hint) hint.textContent = 'error'; });
+}
+
+function updatePromoStatus(id, newStatus) {
+  var p = (STATE.promos || []).find(function (x) { return x.id === id; });
+  if (!p) return;
+  var hint = document.getElementById('save-hint-promo-' + id);
+  if (hint) hint.textContent = 'saving...';
+  fetch('/api/promo/' + encodeURIComponent(id), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ itemName: p.itemName, status: newStatus, dueDate: p.dueDate, owner: p.owner })
+  })
+    .then(function (resp) { return resp.json(); })
+    .then(function (data) {
+      if (data.error) { if (hint) hint.textContent = 'error'; return; }
+      if (hint) hint.textContent = 'saved';
+      refreshData();
+    })
+    .catch(function () { if (hint) hint.textContent = 'error'; });
+}
+
+// ---------------- priority tier buttons ----------------
+document.getElementById('tierGroup').addEventListener('click', function (e) {
+  if (!e.target.classList.contains('tier-btn')) return;
+  priorityTier = e.target.getAttribute('data-tier');
+  document.querySelectorAll('.tier-btn').forEach(function (b) { b.classList.toggle('active', b === e.target); });
+  renderReleases();
+});
+
+// ---------------- promo table ----------------
+function getVisiblePromos() {
+  return (STATE.promos || []).filter(function (p) { return !selectedReleaseId || p.releaseId === selectedReleaseId; });
+}
+
+function renderPromo() {
+  var wrap = document.getElementById('promoTableWrap');
+  var chip = document.getElementById('promoFilterChip');
+
+  if (STATE.promo_error) {
+    wrap.innerHTML = '<div class="error" style="border:none;padding:0;">Could not reach promgrService: ' + esc(STATE.promo_error) + '</div>';
+    chip.style.display = 'none';
+    return;
+  }
+
+  var promos = getVisiblePromos();
+
+  chip.style.display = selectedReleaseId ? 'inline-block' : 'none';
+  chip.innerHTML = 'showing ' + esc(selectedReleaseId) + ' &times; clear';
+  chip.onclick = function () { toggleSelection(selectedReleaseId); };
+
+  if (!promos.length) {
+    wrap.innerHTML = '<div class="empty">' + (selectedReleaseId ? 'No promo items for this release.' : 'No promo items yet.') + '</div>';
+    return;
+  }
+
+  var rows = promos.map(function (p) {
+    var options = PROMO_STATUS_OPTIONS.map(function (s) {
+      return '<option' + (s === p.status ? ' selected' : '') + '>' + s + '</option>';
+    }).join('');
+    return '<tr class="data-row">' +
+      '<td>' + esc(p.id) + '</td>' +
+      '<td>' + esc(p.releaseId) + '</td>' +
+      '<td>' + esc(p.itemName) + '</td>' +
+      '<td>' +
+        '<select class="status-select ' + esc(p.status) + '" data-promo-id="' + esc(p.id) + '">' + options + '</select>' +
+        '<span class="saving-hint" id="save-hint-promo-' + esc(p.id) + '"></span>' +
+      '</td>' +
+      '<td>' + esc(p.dueDate) + '</td>' +
+      '<td>' + esc(p.owner) + '</td>' +
+      '<td><button type="button" class="btn small ghost edit-promo-btn" data-promo-id="' + esc(p.id) + '">Edit</button> <button type="button" class="btn small ghost del-promo-btn" data-promo-id="' + esc(p.id) + '">Delete</button></td>' +
+      '</tr>';
+  }).join('');
+
+  wrap.innerHTML = '<table><thead><tr><th>Promo ID</th><th>Release</th><th>Item</th><th>Status</th><th>Due date</th><th>Owner</th><th>Actions</th></tr></thead><tbody>' + rows + '</tbody></table>';
+
+  wrap.querySelectorAll('.status-select').forEach(function (sel) {
+    sel.addEventListener('change', function () { updatePromoStatus(sel.getAttribute('data-promo-id'), sel.value); });
+  });
+  wrap.querySelectorAll('.edit-promo-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { openEditPromo(btn.getAttribute('data-promo-id')); });
+  });
+  wrap.querySelectorAll('.del-promo-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { deletePromo(btn.getAttribute('data-promo-id')); });
+  });
+}
+
+// ---------------- events table ----------------
+function renderEvents() {
+  var wrap = document.getElementById('eventsTableWrap');
+  if (STATE.evt_error) {
+    wrap.innerHTML = '<div class="error" style="border:none;padding:0;">Could not reach evtmgrService: ' + esc(STATE.evt_error) + '</div>';
+    return;
+  }
+  var events = STATE.events || [];
+  if (!events.length) {
+    wrap.innerHTML = '<div class="empty">No external events yet.</div>';
+    return;
+  }
+  var rows = events.map(function (e) {
+    return '<tr class="data-row">' +
+      '<td>' + esc(e.id) + '</td>' +
+      '<td>' + esc(e.name) + '</td>' +
+      '<td>' + esc(e.date) + '</td>' +
+      '<td>' + esc(e.end) + '</td>' +
+      '<td>' + esc(e.genre) + '</td>' +
+      '<td>' + esc(e.market) + '</td>' +
+      '<td><span class="sev ' + esc(e.severity) + '">' + esc(e.severity) + '</span></td>' +
+      '<td><button type="button" class="btn small ghost edit-event-btn" data-event-id="' + esc(e.id) + '">Edit</button> <button type="button" class="btn small ghost del-event-btn" data-event-id="' + esc(e.id) + '">Delete</button></td>' +
+      '</tr>';
+  }).join('');
+  wrap.innerHTML = '<table><thead><tr><th>ID</th><th>Name</th><th>Date</th><th>End</th><th>Genre</th><th>Market</th><th>Severity</th><th>Actions</th></tr></thead><tbody>' + rows + '</tbody></table>';
+
+  wrap.querySelectorAll('.edit-event-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { openEditEvent(btn.getAttribute('data-event-id')); });
+  });
+  wrap.querySelectorAll('.del-event-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () { deleteEvent(btn.getAttribute('data-event-id')); });
+  });
+}
+
+// ---------------- clash table ----------------
+function getVisibleClashes() {
+  return (STATE.clashes || []).filter(function (c) {
+    return !selectedReleaseId || c.releaseId === selectedReleaseId || c.clashWithId === selectedReleaseId;
+  });
+}
+
+function renderClash() {
+  var wrap = document.getElementById('clashTableWrap');
+  var chip = document.getElementById('clashFilterChip');
+
+  if (STATE.clash_error) {
+    wrap.innerHTML = '<div class="error" style="border:none;padding:0;">Could not reach clashrdrService: ' + esc(STATE.clash_error) + '</div>';
+    chip.style.display = 'none';
+    return;
+  }
+
+  var clashes = getVisibleClashes();
+
+  chip.style.display = selectedReleaseId ? 'inline-block' : 'none';
+  chip.innerHTML = 'showing ' + esc(selectedReleaseId) + ' &times; clear';
+  chip.onclick = function () { toggleSelection(selectedReleaseId); };
+
+  if (!clashes.length) {
+    wrap.innerHTML = '<div class="empty">' + (selectedReleaseId ? 'No clash scores for this release.' : 'No clash scores yet.') + '</div>';
+    return;
+  }
+
+  var rows = clashes.map(function (c) {
+    return '<tr class="data-row">' +
+      '<td>' + esc(c.id) + '</td>' +
+      '<td>' + esc(c.releaseId) + '</td>' +
+      '<td>' + esc(c.clashWithId) + '</td>' +
+      '<td class="risk">' + esc(c.riskScore) + '</td>' +
+      '<td class="factors">' + esc(c.factors) + '</td>' +
+      '<td>' + esc(c.scoredTs) + '</td>' +
+      '</tr>';
+  }).join('');
+
+  wrap.innerHTML = '<table><thead><tr><th>Score ID</th><th>Release</th><th>Clashes with</th><th>Risk score</th><th>Factors</th><th>Scored at</th></tr></thead><tbody>' + rows + '</tbody></table>';
+}
+
+// ---------------- error banner ----------------
+function renderErrorBanner() {
+  var el = document.getElementById('errorBanner');
+  el.innerHTML = STATE.error ? '<div class="panel error">Could not reach relsmgrService: ' + esc(STATE.error) + '</div>' : '';
+}
+
+function renderAll() {
+  renderErrorBanner();
+  renderMetrics();
+  renderTimeline();
+  renderReleases();
+  renderPromo();
+  renderEvents();
+  renderClash();
+  renderTimelineSelection();
+}
+
+// ---------------- search ----------------
+document.getElementById('releaseSearch').addEventListener('input', function (e) {
+  releaseSearchTerm = e.target.value;
+  renderReleases();
+});
+
+// ---------------- CSV export ----------------
+function toCSV(rows, columns) {
+  var lines = [columns.map(function (c) { return c.label; }).join(',')];
+  rows.forEach(function (row) {
+    lines.push(columns.map(function (c) {
+      var v = row[c.key] === null || row[c.key] === undefined ? '' : String(row[c.key]);
+      if (v.indexOf(',') !== -1 || v.indexOf('"') !== -1) {
+        v = '"' + v.replace(/"/g, '""') + '"';
+      }
+      return v;
+    }).join(','));
+  });
+  return lines.join('\n');
+}
+
+function downloadCSV(filename, csv) {
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById('exportReleases').addEventListener('click', function () {
+  var csv = toCSV(getVisibleReleases(), [
+    { key: 'id', label: 'ID' }, { key: 'title', label: 'Title' }, { key: 'genre', label: 'Genre' },
+    { key: 'platform', label: 'Platform' }, { key: 'releaseDate', label: 'Release date' },
+    { key: 'windowEnd', label: 'Window end' }, { key: 'market', label: 'Market' }, { key: 'status', label: 'Status' }
+  ]);
+  downloadCSV('releases.csv', csv);
+});
+document.getElementById('exportPromo').addEventListener('click', function () {
+  var csv = toCSV(getVisiblePromos(), [
+    { key: 'id', label: 'Promo ID' }, { key: 'releaseId', label: 'Release' }, { key: 'itemName', label: 'Item' },
+    { key: 'status', label: 'Status' }, { key: 'dueDate', label: 'Due date' }, { key: 'owner', label: 'Owner' }
+  ]);
+  downloadCSV('promo_checklist.csv', csv);
+});
+document.getElementById('exportEvents').addEventListener('click', function () {
+  var csv = toCSV(STATE.events || [], [
+    { key: 'id', label: 'ID' }, { key: 'name', label: 'Name' }, { key: 'date', label: 'Date' },
+    { key: 'end', label: 'End' }, { key: 'genre', label: 'Genre' }, { key: 'market', label: 'Market' }, { key: 'severity', label: 'Severity' }
+  ]);
+  downloadCSV('external_events.csv', csv);
+});
+document.getElementById('exportClash').addEventListener('click', function () {
+  var csv = toCSV(getVisibleClashes(), [
+    { key: 'id', label: 'Score ID' }, { key: 'releaseId', label: 'Release' }, { key: 'clashWithId', label: 'Clashes with' },
+    { key: 'riskScore', label: 'Risk score' }, { key: 'factors', label: 'Factors' }, { key: 'scoredTs', label: 'Scored at' }
+  ]);
+  downloadCSV('clash_risk.csv', csv);
+});
+// ---------------- add-form toggles ----------------
+function wireToggle(btnId, formId) {
+  document.getElementById(btnId).addEventListener('click', function () {
+    document.getElementById(formId).classList.toggle('open');
+  });
+}
+wireToggle('toggleAddRelease', 'addReleaseForm');
+wireToggle('toggleAddPromo', 'addPromoForm');
+wireToggle('toggleAddEvent', 'addEventForm');
+
+function wireForm(formId, statusId, url, buildBody) {
+  var form = document.getElementById(formId);
+  var status = document.getElementById(statusId);
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    status.textContent = 'saving...';
+    status.className = 'form-status';
+    var fd = new FormData(form);
+    var body = buildBody(fd);
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) {
+          status.textContent = 'error: ' + data.error;
+          status.className = 'form-status err';
+        } else {
+          status.textContent = 'saved';
+          status.className = 'form-status ok';
+          form.reset();
+          refreshData();
+        }
+      })
+      .catch(function (err) {
+        status.textContent = 'error: ' + err;
+        status.className = 'form-status err';
+      });
+  });
+}
+
+wireForm('addReleaseForm', 'addReleaseStatus', '/api/release', function (fd) {
+  return {
+    title: fd.get('title'), genre: fd.get('genre'), platform: fd.get('platform'),
+    releaseDate: fd.get('releaseDate'), windowEnd: fd.get('windowEnd'), market: fd.get('market')
+  };
+});
+wireForm('addPromoForm', 'addPromoStatus', '/api/promo', function (fd) {
+  return {
+    relId: fd.get('relId'), itemName: fd.get('itemName'), status: fd.get('status'),
+    dueDate: fd.get('dueDate'), owner: fd.get('owner')
+  };
+});
+wireForm('addEventForm', 'addEventStatus', '/api/event', function (fd) {
+  return {
+    evtName: fd.get('evtName'), evtDate: fd.get('evtDate'), evtEnd: fd.get('evtEnd'),
+    genre: fd.get('genre'), market: fd.get('market'), severity: fd.get('severity')
+  };
+});
+
+// ---------------- edit forms ----------------
+function openEditRelease(id) {
+  var r = (STATE.releases || []).find(function (x) { return x.id === id; });
+  if (!r) return;
+  var form = document.getElementById('editReleaseForm');
+  form.elements['id'].value = r.id;
+  form.elements['title'].value = r.title || '';
+  form.elements['genre'].value = r.genre || '';
+  form.elements['platform'].value = r.platform || '';
+  form.elements['releaseDate'].value = r.releaseDate || '';
+  form.elements['windowEnd'].value = r.windowEnd || '';
+  form.elements['market'].value = r.market || '';
+  form.elements['status'].value = r.status || '';
+  document.getElementById('editReleaseStatus').textContent = '';
+  form.classList.add('open');
+  form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function openEditPromo(id) {
+  var p = (STATE.promos || []).find(function (x) { return x.id === id; });
+  if (!p) return;
+  var form = document.getElementById('editPromoForm');
+  form.elements['id'].value = p.id;
+  form.elements['itemName'].value = p.itemName || '';
+  form.elements['status'].value = p.status || '';
+  form.elements['dueDate'].value = p.dueDate || '';
+  form.elements['owner'].value = p.owner || '';
+  document.getElementById('editPromoStatus').textContent = '';
+  form.classList.add('open');
+  form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function openEditEvent(id) {
+  var ev = (STATE.events || []).find(function (x) { return x.id === id; });
+  if (!ev) return;
+  var form = document.getElementById('editEventForm');
+  form.elements['id'].value = ev.id;
+  form.elements['evtName'].value = ev.name || '';
+  form.elements['evtDate'].value = ev.date || '';
+  form.elements['evtEnd'].value = ev.end || '';
+  form.elements['genre'].value = ev.genre || '';
+  form.elements['market'].value = ev.market || '';
+  form.elements['severity'].value = ev.severity || '';
+  document.getElementById('editEventStatus').textContent = '';
+  form.classList.add('open');
+  form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+document.getElementById('cancelEditRelease').addEventListener('click', function () {
+  document.getElementById('editReleaseForm').classList.remove('open');
+});
+document.getElementById('cancelEditPromo').addEventListener('click', function () {
+  document.getElementById('editPromoForm').classList.remove('open');
+});
+document.getElementById('cancelEditEvent').addEventListener('click', function () {
+  document.getElementById('editEventForm').classList.remove('open');
+});
+
+// Like wireForm, but sends PUT to url + "/" + the record's own id (taken
+// from the form's hidden "id" field) instead of POSTing to a fixed url.
+function wireEditForm(formId, statusId, urlPrefix, buildBody) {
+  var form = document.getElementById(formId);
+  var status = document.getElementById(statusId);
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var fd = new FormData(form);
+    var id = fd.get('id');
+    status.textContent = 'saving...';
+    status.className = 'form-status';
+    fetch(urlPrefix + '/' + encodeURIComponent(id), {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildBody(fd))
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) {
+          status.textContent = 'error: ' + data.error;
+          status.className = 'form-status err';
+        } else {
+          status.textContent = 'saved';
+          status.className = 'form-status ok';
+          form.classList.remove('open');
+          refreshData();
+        }
+      })
+      .catch(function (err) {
+        status.textContent = 'error: ' + err;
+        status.className = 'form-status err';
+      });
+  });
+}
+
+wireEditForm('editReleaseForm', 'editReleaseStatus', '/api/release', function (fd) {
+  return {
+    title: fd.get('title'), genre: fd.get('genre'), platform: fd.get('platform'),
+    releaseDate: fd.get('releaseDate'), windowEnd: fd.get('windowEnd'), market: fd.get('market'),
+    status: fd.get('status')
+  };
+});
+wireEditForm('editPromoForm', 'editPromoStatus', '/api/promo', function (fd) {
+  return {
+    itemName: fd.get('itemName'), status: fd.get('status'),
+    dueDate: fd.get('dueDate'), owner: fd.get('owner')
+  };
+});
+wireEditForm('editEventForm', 'editEventStatus', '/api/event', function (fd) {
+  return {
+    evtName: fd.get('evtName'), evtDate: fd.get('evtDate'), evtEnd: fd.get('evtEnd'),
+    genre: fd.get('genre'), market: fd.get('market'), severity: fd.get('severity')
+  };
+});
+
+// ---------------- delete actions ----------------
+// All three ask for confirmation first (native confirm() dialog), then send
+// DELETE and refresh the whole dashboard on success. On failure (e.g. a
+// release still has dependent promo/clash rows), the mainframe's error
+// message is shown directly so the person knows what to clean up first.
+function deleteRelease(id) {
+  if (!confirm('Delete release ' + id + '? This cannot be undone.')) return;
+  fetch('/api/release/' + encodeURIComponent(id), { method: 'DELETE' })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.error) { alert('Could not delete: ' + data.error); return; }
+      if (selectedReleaseId === id) selectedReleaseId = null;
+      refreshData();
+    })
+    .catch(function (err) { alert('Could not delete: ' + err); });
+}
+
+function deletePromo(id) {
+  if (!confirm('Delete promo item ' + id + '? This cannot be undone.')) return;
+  fetch('/api/promo/' + encodeURIComponent(id), { method: 'DELETE' })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.error) { alert('Could not delete: ' + data.error); return; }
+      refreshData();
+    })
+    .catch(function (err) { alert('Could not delete: ' + err); });
+}
+
+function deleteEvent(id) {
+  if (!confirm('Delete event ' + id + '? This cannot be undone.')) return;
+  fetch('/api/event/' + encodeURIComponent(id), { method: 'DELETE' })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (data.error) { alert('Could not delete: ' + data.error); return; }
+      refreshData();
+    })
+    .catch(function (err) { alert('Could not delete: ' + err); });
+}
+
+// ---------------- auto-refresh ----------------
+var refreshDot = document.getElementById('refreshDot');
+var refreshLabel = document.getElementById('refreshLabel');
+
+function refreshData() {
+  refreshDot.classList.remove('live');
+  fetch('/api/dashboard')
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      STATE = data;
+      renderAll();
+      refreshDot.classList.add('live');
+      refreshLabel.textContent = 'updated ' + new Date().toLocaleTimeString();
+      setTimeout(function () { refreshDot.classList.remove('live'); }, 600);
+    })
+    .catch(function () {
+      refreshLabel.textContent = 'refresh failed, retrying...';
+    });
+}
+
+setInterval(refreshData, 120000); // 2 minutes - was 30s, reduced to lower background load on CICS
+
+renderAll();
+refreshLabel.textContent = 'updated just now';
+</script>
+</body>
+</html>
