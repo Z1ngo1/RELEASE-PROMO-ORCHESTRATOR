@@ -145,6 +145,15 @@
   .status-select.CANCELLED{color:var(--coral);}
   .saving-hint{font-size:10px;color:var(--muted);margin-left:6px;font-family:'IBM Plex Mono',monospace;}
 
+  /* confirm modal */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;align-items:center;justify-content:center;}
+  .modal-overlay.open{display:flex;}
+  .modal-box{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;max-width:360px;width:90%;box-shadow:0 10px 40px rgba(0,0,0,0.6);}
+  .modal-message{font-size:14px;color:var(--text);margin-bottom:18px;line-height:1.5;}
+  .modal-actions{display:flex;gap:10px;justify-content:flex-end;}
+  .btn.coral{background:rgba(255,97,82,0.12);color:var(--coral);border:1px solid var(--coral);}
+  .btn.coral:hover{background:rgba(255,97,82,0.22);}
+
 </style>
 </head>
 <body>
@@ -210,6 +219,7 @@
       </label>
       <div class="submit-row">
         <button type="submit" class="btn">Save release</button>
+        <button type="button" class="btn ghost" id="cancelAddRelease">Cancel</button>
         <span class="form-status" id="addReleaseStatus"></span>
       </div>
     </form>
@@ -271,6 +281,7 @@
       <label>Owner <input type="text" name="owner"></label>
       <div class="submit-row">
         <button type="submit" class="btn">Save promo item</button>
+        <button type="button" class="btn ghost" id="cancelAddPromo">Cancel</button>
         <span class="form-status" id="addPromoStatus"></span>
       </div>
     </form>
@@ -325,6 +336,7 @@
       </label>
       <div class="submit-row">
         <button type="submit" class="btn">Save event</button>
+        <button type="button" class="btn ghost" id="cancelAddEvent">Cancel</button>
         <span class="form-status" id="addEventStatus"></span>
       </div>
     </form>
@@ -369,6 +381,16 @@
     <div id="clashTableWrap"></div>
   </div>
 
+</div>
+
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box">
+    <div class="modal-message" id="confirmModalMessage"></div>
+    <div class="modal-actions">
+      <button type="button" class="btn ghost" id="confirmModalCancel">Cancel</button>
+      <button type="button" class="btn coral" id="confirmModalOk">Delete</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -932,6 +954,18 @@ wireToggle('toggleAddRelease', 'addReleaseForm');
 wireToggle('toggleAddPromo', 'addPromoForm');
 wireToggle('toggleAddEvent', 'addEventForm');
 
+function wireAddCancel(btnId, formId, statusId) {
+  document.getElementById(btnId).addEventListener('click', function () {
+    var form = document.getElementById(formId);
+    form.reset();
+    document.getElementById(statusId).textContent = '';
+    form.classList.remove('open');
+  });
+}
+wireAddCancel('cancelAddRelease', 'addReleaseForm', 'addReleaseStatus');
+wireAddCancel('cancelAddPromo', 'addPromoForm', 'addPromoStatus');
+wireAddCancel('cancelAddEvent', 'addEventForm', 'addEventStatus');
+
 function wireForm(formId, statusId, url, buildBody) {
   var form = document.getElementById(formId);
   var status = document.getElementById(statusId);
@@ -1097,43 +1131,74 @@ wireEditForm('editEventForm', 'editEventStatus', '/api/event', function (fd) {
   };
 });
 
+// ---------------- custom confirm modal ----------------
+// Replaces the native browser confirm() with a modal styled to match the
+// site. Call showConfirm(message, onConfirm) - onConfirm only runs if the
+// person clicks Delete, not Cancel or the backdrop.
+function showConfirm(message, onConfirm) {
+  var overlay = document.getElementById('confirmModal');
+  var msgEl = document.getElementById('confirmModalMessage');
+  var okBtn = document.getElementById('confirmModalOk');
+  var cancelBtn = document.getElementById('confirmModalCancel');
+
+  msgEl.textContent = message;
+  overlay.classList.add('open');
+
+  function cleanup() {
+    overlay.classList.remove('open');
+    okBtn.removeEventListener('click', onOk);
+    cancelBtn.removeEventListener('click', onCancel);
+    overlay.removeEventListener('click', onBackdrop);
+  }
+  function onOk() { cleanup(); onConfirm(); }
+  function onCancel() { cleanup(); }
+  function onBackdrop(e) { if (e.target === overlay) cleanup(); }
+
+  okBtn.addEventListener('click', onOk);
+  cancelBtn.addEventListener('click', onCancel);
+  overlay.addEventListener('click', onBackdrop);
+}
+
 // ---------------- delete actions ----------------
-// All three ask for confirmation first (native confirm() dialog), then send
+// All three ask for confirmation via the custom modal above, then send
 // DELETE and refresh the whole dashboard on success. On failure (e.g. a
 // release still has dependent promo/clash rows), the mainframe's error
 // message is shown directly so the person knows what to clean up first.
 function deleteRelease(id) {
-  if (!confirm('Delete release ' + id + '? This cannot be undone.')) return;
-  fetch('/api/release/' + encodeURIComponent(id), { method: 'DELETE' })
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-      if (data.error) { alert('Could not delete: ' + data.error); return; }
-      if (selectedReleaseId === id) selectedReleaseId = null;
-      refreshData();
-    })
-    .catch(function (err) { alert('Could not delete: ' + err); });
+  showConfirm('Delete release ' + id + '? This cannot be undone.', function () {
+    fetch('/api/release/' + encodeURIComponent(id), { method: 'DELETE' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) { alert('Could not delete: ' + data.error); return; }
+        if (selectedReleaseId === id) selectedReleaseId = null;
+        refreshData();
+      })
+      .catch(function (err) { alert('Could not delete: ' + err); });
+  });
 }
 
 function deletePromo(id) {
-  if (!confirm('Delete promo item ' + id + '? This cannot be undone.')) return;
-  fetch('/api/promo/' + encodeURIComponent(id), { method: 'DELETE' })
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-      if (data.error) { alert('Could not delete: ' + data.error); return; }
-      refreshData();
-    })
-    .catch(function (err) { alert('Could not delete: ' + err); });
+  showConfirm('Delete promo item ' + id + '? This cannot be undone.', function () {
+    fetch('/api/promo/' + encodeURIComponent(id), { method: 'DELETE' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) { alert('Could not delete: ' + data.error); return; }
+        refreshData();
+      })
+      .catch(function (err) { alert('Could not delete: ' + err); });
+  });
 }
 
 function deleteEvent(id) {
-  if (!confirm('Delete event ' + id + '? This cannot be undone.')) return;
-  fetch('/api/event/' + encodeURIComponent(id), { method: 'DELETE' })
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-      if (data.error) { alert('Could not delete: ' + data.error); return; }
-      refreshData();
-    })
-    .catch(function (err) { alert('Could not delete: ' + err); });
+  showConfirm('Delete event ' + id + '? This cannot be undone.', function () {
+    fetch('/api/event/' + encodeURIComponent(id), { method: 'DELETE' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) { alert('Could not delete: ' + data.error); return; }
+        refreshData();
+      })
+      .catch(function (err) { alert('Could not delete: ' + err); });
+  });
 }
 
 // ---------------- auto-refresh ----------------
