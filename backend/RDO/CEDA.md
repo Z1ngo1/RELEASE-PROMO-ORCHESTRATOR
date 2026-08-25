@@ -1,0 +1,79 @@
+# CICS Resource Definitions (RDO)
+
+Everything here was defined interactively through CEDA in a 3270 session,
+no JCL was used.
+
+## Programs
+
+`CLSHBAT` is not listed here, it's a batch program run via JCL, not a CICS
+program, so it has no `PROGRAM`/`URIMAP` definition.
+
+```
+CEDA DEFINE PROGRAM(RELSMGR) GROUP(ORCHGRP) LANGUAGE(COBOL)
+CEDA DEFINE PROGRAM(PROMGR) GROUP(ORCHGRP) LANGUAGE(COBOL)
+CEDA DEFINE PROGRAM(EVTMGR) GROUP(ORCHGRP) LANGUAGE(COBOL)
+CEDA DEFINE PROGRAM(CLASHRDR) GROUP(ORCHGRP) LANGUAGE(COBOL)
+```
+
+## URIMAPs
+
+No `TRANSACTION()` clause, CICS Web Support routes everything through the
+default transaction `CWBA`. `PATH` uses a wildcard, the COBOL program itself
+branches on the exact path and method.
+
+```
+CEDA DEFINE URIMAP(RELSMGR1) GROUP(ORCHGRP)
+     USAGE(SERVER) SCHEME(HTTP) HOST(*)
+     PATH(/relsmgr/*)
+     TCPIPSERVICE(DFH$WUTC)
+     PROGRAM(RELSMGR)
+
+CEDA DEFINE URIMAP(PROMGR1) GROUP(ORCHGRP)
+     USAGE(SERVER) SCHEME(HTTP) HOST(*)
+     PATH(/promgr/*)
+     TCPIPSERVICE(DFH$WUTC)
+     PROGRAM(PROMGR)
+
+CEDA DEFINE URIMAP(EVTMGR1) GROUP(ORCHGRP)
+     USAGE(SERVER) SCHEME(HTTP) HOST(*)
+     PATH(/evtmgr/*)
+     TCPIPSERVICE(DFH$WUTC)
+     PROGRAM(EVTMGR)
+
+CEDA DEFINE URIMAP(CLASHRDR) GROUP(ORCHGRP)
+     USAGE(SERVER) SCHEME(HTTP) HOST(*)
+     PATH(/clashrdr/*)
+     TCPIPSERVICE(DFH$WUTC)
+     PROGRAM(CLASHRDR)
+```
+
+## No BMS mapset
+
+No 3270 screens in this project, responses are JSON built by hand in COBOL.
+
+## Already existing resources
+
+`TCPIPSERVICE(DFH$WUTC)` and `DB2ENTRY(CSMID)` (plan `Z73460`) already
+existed on this system, not created for this project.
+
+## Install
+
+```
+# All at once
+CEDA INSTALL GROUP(ORCHGRP)
+
+# Or individually
+CEDA INSTALL PROGRAM(RELSMGR) GROUP(ORCHGRP)
+CEDA INSTALL PROGRAM(PROMGR) GROUP(ORCHGRP)
+CEDA INSTALL PROGRAM(EVTMGR) GROUP(ORCHGRP)
+CEDA INSTALL PROGRAM(CLASHRDR) GROUP(ORCHGRP)
+CEDA INSTALL URIMAP(RELSMGR1) GROUP(ORCHGRP)
+CEDA INSTALL URIMAP(PROMGR1) GROUP(ORCHGRP)
+CEDA INSTALL URIMAP(EVTMGR1) GROUP(ORCHGRP)
+CEDA INSTALL URIMAP(CLASHRDR) GROUP(ORCHGRP)
+```
+
+## Verify
+
+```
+CEDA DISPLAY GROUP(ORCHGRP)
