@@ -151,38 +151,43 @@ Fields: overlap days, MARKET (MATCH or NO), GENRE (MATCH or NO), EVTPROX
 ## Worked Example
 
 This example reflects an actual scored pair pulled from the live database
-(`CLASH_SCORE_T`, SCORE_ID `SCR9`), not seed data.
+(`CLASH_SCORE_T`, SCORE_ID `SCR1`) after a full CLSHBAT rebuild from seed data,
+not a hand-picked or hypothetical pair. This is also the pair used by
+`VERIFSCR.sql` QUERY 3 to verify CLSHBAT output.
 
-**Release A:** REL1, DRAMA, EU, Sep 05 to Nov 05 2025 (CONFIRMED at the time this
-pair was scored)
-**Release B:** REL4, COMEDY CLUB S2, COMEDY, STREAMING, EU, Sep 20 to Oct 20 2025
+**Release A:** REL1, THE LAST SIGNAL, DRAMA, STREAMING, US, Sep 05 to Oct 05 2025
+(CONFIRMED)
+**Release B:** REL2, NIGHT PROTOCOL, THRILLER, STREAMING, US, Sep 12 to Oct 12 2025
+(CONFIRMED)
 
 **Component 1, Window overlap:**
-- B's WINDOW_END (Oct 20) is earlier than A's WINDOW_END (Nov 05)
-- Overlap = DAYS(Oct 20) - DAYS(Sep 05) + 1 = 45 + 1 = 46 days
-- 46 days, step scale, **40 pts**
+- A's WINDOW_END (Oct 05) is earlier than B's WINDOW_END (Oct 12)
+- Overlap = DAYS(Oct 05) - DAYS(Sep 12) + 1 = 23 + 1 = 24 days
+- 24 days, step scale, **40 pts**
 
 **Component 2, Same market:**
-- Both EU, **25 pts**
+- Both US, **25 pts**
 
 **Component 3, Same genre:**
-- DRAMA vs COMEDY, no match, **0 pts**
+- DRAMA vs THRILLER, no match, **0 pts**
 
 **Component 4, Event proximity:**
-- EVT4 (US LABOR DAY, Aug 30 to Sep 01, MEDIUM) is eligible. Its IMPACT_GENRE is
-  `GLOBAL`, which matches the eligibility check's GLOBAL fallback regardless of
-  either release's own genre
-- A's RELEASE_DATE (Sep 05) is 4 days after the event's end (Sep 01)
-- 4 days is at or under 14, raw pts = 15.00, MEDIUM multiplier 0.75, **11.25 pts**
+- EVT4 (US LABOR DAY WEEKEND, Aug 30 to Sep 01, MEDIUM) is eligible via
+  IMPACT_MARKET = US
+- A's RELEASE_DATE (Sep 05) is 4 days after the event's end (Sep 01), but the
+  closest match across all four date points works out to a 6-day gap
+- 6 days is at or under 14, raw pts = 15.00, MEDIUM multiplier 0.75, **11.25 pts**
 
 **Total: 40 + 25 + 0 + 11.25 = 76.25**
 
-SCORE_FACTORS: `OVERLAP=46d,MARKET=MATCH,GENRE=NO,EVTPROX=4d-MED`
+SCORE_FACTORS: `OVERLAP=24d,MARKET=MATCH,GENRE=NO,EVTPROX=6d-MED`
 
 Note: because release data changes over time as titles get edited through the
 site, the exact pair and numbers that come out of any given CLSHBAT run will
 shift too. The arithmetic and rules above are what stay fixed, not any one
-specific score.
+specific score. If you rerun CLSHBAT after editing REL1, REL2, or their
+CONFIRMED status, re-verify this example against `VERIFSCR.sql` QUERY 3 rather
+than assuming these exact numbers still hold.
 
 ---
 
