@@ -34,6 +34,11 @@ ORDER BY RISK_SCORE DESC;
 
 ------------------------------------------------------------------
 -- QUERY 3: Verify the known high-score pair
+-- REL1 (US DRAMA Sep05-Oct05) vs REL2 (US THRILLER Sep12-Oct12)
+-- Expected score: 76.25
+-- Overlap=24d(40pts) + Market=US/US(25pts) + Genre=DRAMA/THRILLER(0pts)
+--   + Event proximity, MEDIUM severity (15*0.75=11.25pts)
+--   = 76.25
 ------------------------------------------------------------------
 SELECT RISK_SCORE,
        SCORE_FACTORS
