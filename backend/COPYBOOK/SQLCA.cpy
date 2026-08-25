@@ -5,4 +5,6 @@
       *        (OR COPY SQLCA IN WORKING-STORAGE IF NOT USING          *
       *         THE PRECOMPILER AUTO-INCLUDE)                          *
       *----------------------------------------------------------------*
-           EXEC SQL INCLUDE SQLCA END-EXEC.                             
+           EXEC SQL 
+             INCLUDE SQLCA 
+           END-EXEC.                             
