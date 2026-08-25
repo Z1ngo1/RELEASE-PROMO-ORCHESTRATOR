@@ -106,6 +106,7 @@ RELEASE-PROMO-ORCHESTRATOR/
 │   ├── COPYBOOK/      - Shared copybooks (e.g. SQLCA)
 │   ├── DDL/           - CREATTAB.sql, SEEDDATA.sql, VERIFSCR.sql
 │   └── JCL/           - COMPILE.jcl, CLSHJCL.jcl
+│   └── RDO/           - CEDA.md, CEMT.md, resource definition reference
 ├── docs/
 │   ├── cics-ws-guide.md      - CICS Web Support routing, URIMAPs, curl tests, troubleshooting
 │   ├── db2-schema.md         - Table layouts, FK order, sequences, DDL run order
@@ -123,7 +124,7 @@ RELEASE-PROMO-ORCHESTRATOR/
 
 1. **Read** [`startup_checklist.md`](startup_checklist.md) first, it covers the full startup sequence, diagnostics table, and the PKLIST rule that trips up this project the most.
 2. **Set up DB2** using the scripts in [`backend/DDL/`](backend/DDL/) in order: `CREATTAB.sql` → `SEEDDATA.sql` → submit `CLSHJCL.jcl` → `VERIFSCR.sql`.
-3. **Install CICS resources** via `CEDA INSTALL GROUP(ORCHGRP)` (programs, URIMAPs, all defined interactively, no JCL).
+3. **Install CICS resources**, defined interactively via CEDA (see [`backend/RDO/CEDA.md`](backend/RDO/CEDA.md) for the exact commands), then verify with the checks in [`backend/RDO/CEMT.md`](backend/RDO/CEMT.md).
 4. **Start Flask** ([`frontend/python/app.py`](frontend/python/app.py)) and open the printed URL in a browser.
 5. **Verify** using the curl tests in [`docs/manual-tests.md`](docs/manual-tests.md).
 
