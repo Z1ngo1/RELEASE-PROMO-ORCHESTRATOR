@@ -74,7 +74,7 @@ used by CLSHBAT outer/inner cursor. `IX_REL_MARKET_GENRE` on (TARGET_MARKET, GEN
 One release has zero or many promo items. Written and maintained by PROMGR.
 
 | Column     | Type        | Null | Notes                                             |
-|------------|-------------|------|---------------------------------------------------|
+|------------|-------------|------|-----------------------------------------------------|
 | PROMO_ID   | CHAR(10)    | N    | PK. Short ID, e.g. `PRO1`. Generated via SEQ_PROMO. |
 | RELEASE_ID | CHAR(10)    | N    | FK -> RELEASE_T. DELETE on RELEASE_T fails with -532 if promo items exist. |
 | ITEM_NAME  | VARCHAR(80) | N    | e.g. `TRAILER UPLOADED`, `PRESS KIT SENT`         |
@@ -130,7 +130,7 @@ operation.
 | ACTION      | CHAR(6)      | N    | `ADD`, `UPD`, or `DEL`                          |
 | DETAILS     | VARCHAR(200) | Y    | Short description of what changed               |
 | CHANGED_BY  | CHAR(10)     | N    | Default `Z73460` (TSO user). No auth in MVP.    |
-| CHANGED_TS  | TIMESTAMP    | N    | Default CURRENT TIMESTAMP                       |
+| CHANGED_TS  | TIMESTAMP    | N    | No column-level default on this system: an inline `WITH DEFAULT CURRENT TIMESTAMP` clause raises SQLCODE -199 on this DB2 catalog level, so it was dropped from the DDL. Harmless in practice, WRITE-CHANGE-LOG always supplies CURRENT TIMESTAMP explicitly in the INSERT. |
 
 **CHECK constraints:** ENTITY_TYPE in (RELEASE, PROMO, EVENT), ACTION in (ADD, UPD, DEL)
 
@@ -187,10 +187,10 @@ EXT_EVENT_T          RELEASE_T
 ## Running the DDL
 
 ```
-1. backend/ddl/CREATTAB.sql   - creates all 5 tables, sequences, indexes
-2. backend/ddl/SEEDDATA.sql   - inserts test data (4 events, 5 releases, 5 promo items)
+1. backend/DDL/CREATTAB.sql   - creates all 5 tables, sequences, indexes
+2. backend/DDL/SEEDDATA.sql   - inserts test data (4 events, 5 releases, 5 promo items)
 3. Submit CLSHJCL.jcl         - runs CLSHBAT to populate CLASH_SCORE_T
-4. backend/ddl/VERIFSCR.sql   - 6 verification queries to confirm everything looks right
+4. backend/DDL/VERIFSCR.sql   - 6 verification queries to confirm everything looks right
 ```
 
 All of this is run interactively via SPUFI, one statement or file at a time.
