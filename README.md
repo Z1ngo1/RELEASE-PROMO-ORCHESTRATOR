@@ -41,7 +41,7 @@ RELEASE-PROMO-ORCHESTRATOR keeps four kinds of records in sync:
 flowchart TB
   Browser["Browser"]
   Flask["Flask frontend\nfrontend/python/app.py"]
-  CICS["CICS Web Support\nTCPIPSERVICE DFH$WUTC\nport 4558"]
+  CICS["CICS Web Support\nTCPIPSERVICE DFH$WUTC\nport varies per restart"]
  
   RELSMGR["RELSMGR\nCOBOL / CICS"]
   PROMGR["PROMGR\nCOBOL / CICS"]
@@ -80,7 +80,7 @@ Requests flow one way down and the response flows back up: the browser talks onl
 | [CLASHRDR](backend/COBOL/CLASHRDR.cbl) | CICS | CLASH_SCORE_T | GET only, read-only |
 | [CLSHBAT](backend/COBOL/CLSHBAT.cbl) | Batch | CLASH_SCORE_T | Recalculates risk scores for all CONFIRMED releases |
 
-All four CICS programs share the same `TCPIPSERVICE(DFH$WUTC)` on port 4558 and the same `DB2ENTRY(CSMID)` with `TRANSID(CWBA)`. Full CRUD, including DELETE, is implemented for all three editable entities.
+All four CICS programs share the same `TCPIPSERVICE(DFH$WUTC)` (port changes on every CICS region restart, see [`startup_checklist.md`](startup_checklist.md)) and the same `DB2ENTRY(CSMID)` with `TRANSID(CWBA)`. Full CRUD, including DELETE, is implemented for all three editable entities.
 
 ## Screenshots
 
@@ -105,7 +105,7 @@ RELEASE-PROMO-ORCHESTRATOR/
 │   ├── COBOL/        - RELSMGR, PROMGR, EVTMGR, CLASHRDR, CLSHBAT source
 │   ├── COPYBOOK/      - Shared copybooks (e.g. SQLCA)
 │   ├── DDL/           - CREATTAB.sql, SEEDDATA.sql, VERIFSCR.sql
-│   └── JCL/           - COMPILE.jcl, CLSHJCL.jcl
+│   ├── JCL/           - COMPILE.jcl, CLSHJCL.jcl
 │   └── RDO/           - CEDA.md, CEMT.md, resource definition reference
 ├── docs/
 │   ├── cics-ws-guide.md      - CICS Web Support routing, URIMAPs, curl tests, troubleshooting
@@ -125,7 +125,7 @@ RELEASE-PROMO-ORCHESTRATOR/
 1. **Read** [`startup_checklist.md`](startup_checklist.md) first, it covers the full startup sequence, diagnostics table, and the PKLIST rule that trips up this project the most.
 2. **Set up DB2** using the scripts in [`backend/DDL/`](backend/DDL/) in order: `CREATTAB.sql` → `SEEDDATA.sql` → submit `CLSHJCL.jcl` → `VERIFSCR.sql`.
 3. **Install CICS resources**, defined interactively via CEDA (see [`backend/RDO/CEDA.md`](backend/RDO/CEDA.md) for the exact commands), then verify with the checks in [`backend/RDO/CEMT.md`](backend/RDO/CEMT.md).
-4. **Start Flask** ([`frontend/python/app.py`](frontend/python/app.py)) and open the printed URL in a browser.
+4. **Start Flask** ([`frontend/python/app.py`](frontend/python/app.py)) with the current CICS port: `CICS_PORT=<port> python3 app.py`, then open the printed URL in a browser.
 5. **Verify** using the curl tests in [`docs/manual-tests.md`](docs/manual-tests.md).
 
 ## Documentation
