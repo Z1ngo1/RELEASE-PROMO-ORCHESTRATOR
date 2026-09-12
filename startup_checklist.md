@@ -12,7 +12,34 @@ region's own built-in HTTP support.
 
 Profile used in this checklist: `Z73460`, APPLID `CXZ73460`, host
 `s0w1.dal-ebis.ihost.com` / `204.90.115.200`.
-
+ 
+---
+ 
+## 0. Important: the CICS port is not fixed
+ 
+`TCPIPSERVICE(DFH$WUTC)` gets a new port assigned **every time the CICS
+region restarts** (confirmed by watching it change across multiple restarts
+in this exact environment, this is a property of the shared Xplore setup,
+not a one-off glitch). Never assume a previously working port number is
+still correct after any kind of region restart or long idle period.
+ 
+Always check the current port before starting Flask:
+ 
+```
+CEMT INQUIRE TCPIPSERVICE(DFH$WUTC)
+```
+ 
+Look at the `Por(nnnnn)` value. `app.py` reads the port from an environment
+variable and refuses to start with a stale guess:
+ 
+```bash
+CICS_PORT=4217 python3 app.py
+```
+ 
+If you forget to set `CICS_PORT`, the app exits immediately with the exact
+command to check the port and restart, instead of silently trying a
+leftover value.
+ 
 ---
 
 ## 1. Architecture (for reference)
