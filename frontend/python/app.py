@@ -7,10 +7,35 @@ POST with a form-encoded body - and the COBOL programs answer with JSON.
 
 from flask import Flask, render_template, request, jsonify
 import requests
+import os
+import sys
 
 app = Flask(__name__)
 
-BASE_URL = "http://s0w1.dal-ebis.ihost.com:4558"
+# The TCPIPSERVICE port changes every time the CICS region restarts (this
+# is a fact of this shared learning environment, not a one-off glitch).
+# There's no sensible default to fall back to here - an old port number
+# would just be wrong and confusing - so CICS_PORT is required. Run with:
+#   CICS_PORT=4217 python3 app.py
+# using whatever CEMT INQUIRE TCPIPSERVICE(DFH$WUTC) shows right now.
+CICS_PORT = os.environ.get("CICS_PORT")
+if not CICS_PORT:
+    print("=" * 70)
+    print("CICS_PORT is not set.")
+    print()
+    print("The TCPIPSERVICE port changes every time the CICS region")
+    print("restarts, so there's no safe default to assume. On the")
+    print("mainframe, check:")
+    print()
+    print("    CEMT INQUIRE TCPIPSERVICE(DFH$WUTC)")
+    print()
+    print("Look at the Por(nnnnn) value, then run:")
+    print()
+    print(f"    CICS_PORT=<port> python3 {os.path.basename(__file__)}")
+    print("=" * 70)
+    sys.exit(1)
+
+BASE_URL = f"http://s0w1.dal-ebis.ihost.com:{CICS_PORT}"
 
 RELSMGR_URL = f"{BASE_URL}/relsmgr"
 PROMGR_URL = f"{BASE_URL}/promgr"
