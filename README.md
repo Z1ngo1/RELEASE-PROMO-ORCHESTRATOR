@@ -2,6 +2,10 @@
 
 > ⚠️ **Disclaimer:** This repository is a **personal learning project** - designed, written, and tested entirely by me while studying IBM mainframe development (IBM Z Xplore). It may be **incomplete**, may not cover all edge cases or error conditions, and is not intended for production use. No authentication is implemented; the site is fully open on its host/port by design, this is a local learning demo, not a production deployment. Think of this repository as a **reference point** for anyone learning how CICS, DB2, batch COBOL, and a Flask frontend fit together into one working system.
 
+## Video Walkthrough
+
+I recorded a full walkthrough of this project on YouTube, covering the live site, the mainframe side (CICS, DB2, batch scoring), and some of the bugs I ran into along the way: **[watch it here](https://youtu.be/rwYyUBjFvho?si=cSY53isNXn5QjQpu)**
+
 ## About This Repository
 
 Release & Promo Orchestrator is a full-stack mainframe project that tracks content releases (titles, platforms, release windows) and their promo checklists, then calculates a **clash risk score** for every pair of confirmed releases based on schedule overlap, target market, genre, and nearby external events (e.g. holidays, sports finals). The whole stack runs through the CICS region's own built-in HTTP support, no external web server or middleware involved.
@@ -80,7 +84,9 @@ Requests flow one way down and the response flows back up: the browser talks onl
 | [CLASHRDR](backend/COBOL/CLASHRDR.cbl) | CICS | CLASH_SCORE_T | GET only, read-only |
 | [CLSHBAT](backend/COBOL/CLSHBAT.cbl) | Batch | CLASH_SCORE_T | Recalculates risk scores for all CONFIRMED releases |
 
-All four CICS programs share the same `TCPIPSERVICE(DFH$WUTC)` (port changes on every CICS region restart, see [`startup_checklist.md`](startup_checklist.md)) and the same `DB2ENTRY(CSMID)` with `TRANSID(CWBA)`. Full CRUD, including DELETE, is implemented for all three editable entities.
+All four CICS programs share the same `TCPIPSERVICE(DFH$WUTC)` and the same `DB2ENTRY(CSMID)` with `TRANSID(CWBA)`. Full CRUD, including DELETE, is implemented for all three editable entities.
+
+**Important:** the port `TCPIPSERVICE(DFH$WUTC)` listens on changes every time the CICS region restarts. Always check it with `CEMT INQUIRE TCPIPSERVICE(DFH$WUTC)` before starting Flask, never assume a previously working port is still correct, see [`startup_checklist.md`](startup_checklist.md) section 0 for details.
 
 ## Screenshots
 
@@ -125,8 +131,9 @@ RELEASE-PROMO-ORCHESTRATOR/
 1. **Read** [`startup_checklist.md`](startup_checklist.md) first, it covers the full startup sequence, diagnostics table, and the PKLIST rule that trips up this project the most.
 2. **Set up DB2** using the scripts in [`backend/DDL/`](backend/DDL/) in order: `CREATTAB.sql` → `SEEDDATA.sql` → submit `CLSHJCL.jcl` → `VERIFSCR.sql`.
 3. **Install CICS resources**, defined interactively via CEDA (see [`backend/RDO/CEDA.md`](backend/RDO/CEDA.md) for the exact commands), then verify with the checks in [`backend/RDO/CEMT.md`](backend/RDO/CEMT.md).
-4. **Start Flask** ([`frontend/python/app.py`](frontend/python/app.py)) with the current CICS port: `CICS_PORT=<port> python3 app.py`, then open the printed URL in a browser.
-5. **Verify** using the curl tests in [`docs/manual-tests.md`](docs/manual-tests.md).
+4. **Check the current CICS port**, it changes on every region restart: `CEMT INQUIRE TCPIPSERVICE(DFH$WUTC)`.
+5. **Start Flask** ([`frontend/python/app.py`](frontend/python/app.py)) with that port: `CICS_PORT=<port> python3 app.py`, then open the printed URL in a browser.
+6. **Verify** using the curl tests in [`docs/manual-tests.md`](docs/manual-tests.md).
 
 ## Documentation
 
@@ -147,3 +154,5 @@ RELEASE-PROMO-ORCHESTRATOR/
 ## Author
 
 Self-taught mainframe developer. Built end-to-end (COBOL, CICS, DB2, JCL, Flask) as a hands-on IBM Z Xplore learning project.
+
+I also used IBM Bob (an AI coding assistant for mainframe development) throughout this project, for planning, code review, and catching bugs along the way.
